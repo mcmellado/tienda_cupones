@@ -38,10 +38,11 @@
         $usuario = \App\Tablas\Usuario::logueado();
         $usuario_id = $usuario->id;
         $pdo->beginTransaction();
-        $sent = $pdo->prepare('INSERT INTO facturas (usuario_id)
-                               VALUES (:usuario_id)
+        $cupon = obtener_get('cupon');
+        $sent = $pdo->prepare('INSERT INTO facturas (usuario_id, cupon_utilizado)
+                               VALUES (:usuario_id, :cupon_utilizado)
                                RETURNING id');
-        $sent->execute([':usuario_id' => $usuario_id]);
+        $sent->execute([':usuario_id' => $usuario_id, ':cupon_utilizado' => $cupon]);
         $factura_id = $sent->fetchColumn();
         $lineas = $carrito->getLineas();
         $values = [];
@@ -72,7 +73,9 @@
         return volver();
     }
 
-    $cupon = obtener_get("cupon");
+    $cupon = obtener_get('cupon');
+
+
 
     if(isset($cupon)) {
 
@@ -87,17 +90,10 @@
             unset($cupon);
 
         } else {
-
-            $id_cupon = $pdo->prepare("SELECT id FROM cupones WHERE cupon = :cupon");
-            $id_cupon->execute([":cupon" => $cupon]);
-            $id_cupon = $id_cupon->fetchColumn();
-
-            $insertar_cupon = $pdo->prepare("UPDATE articulos SET id_cupon = :id_cupon $where");
-            $insertar_cupon->execute([":id_cupon" => $id_cupon]);
             $_SESSION['exito'] = "Se ha aplicado el cupón correspondiente: $cupon";
         }
 
-    }
+    } 
 
     ?>
 
@@ -140,14 +136,14 @@
                         $cantidad = $linea->getCantidad();
                         if(isset($cupon)) {
                             $precio_antiguo = $articulo->getPrecio();
-                            $precio = $articulo->aplicarCupon();
+                            $precio = $articulo->aplicarCupon($cupon);
                         } else {
                             $precio = $articulo->getPrecio();
                         }
                         $importe = $cantidad * $precio;
                         $total += $importe;
                         if(isset($cupon)) {
-                            $cupon_utilizado = $articulo->getCupon();
+                           $cupon;
                         }
                         ?>
                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
@@ -175,7 +171,7 @@
                 </tbody>
                 <tfoot>
                 <?php if(isset($cupon)): ?>
-                                <td class="py-4 px-6">Cupon utilizado: <?= $cupon_utilizado ?></td>       
+                                <td class="py-4 px-6">Cupon utilizado: <?= $cupon ?></td>       
                             <?php endif ?>
                     <td colspan="3"></td>
                     <td class="text-center font-semibold">TOTAL:</td>

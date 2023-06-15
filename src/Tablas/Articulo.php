@@ -47,6 +47,10 @@ class Articulo extends Modelo
         return $this->precio;
     }
 
+    public function setIdCUpon($id_cupon) {
+        $this->id_cupon = $id_cupon;
+    }
+
     public function getStock()
     {
         return $this->stock;
@@ -68,11 +72,9 @@ class Articulo extends Modelo
     }
 
 
-    public function aplicarCupon()
+    public function aplicarCupon($cupon)
     {
         $precio_articulo = $this->precio;
-        $cupon = $this->getCupon();
-    
         $nuevo_precio = $precio_articulo;
     
         switch ($cupon) {
@@ -86,6 +88,12 @@ class Articulo extends Modelo
         }
     
         return $nuevo_precio;
+    }
+
+    public function quitarCupon() {
+        $pdo = conectar();
+        $quitar_descuento = $pdo->prepare("UPDATE articulos SET id_cupon = NULL WHERE id = :id");
+        $quitar_descuento->execute([":id" => $this->id]);
     }
     
 }

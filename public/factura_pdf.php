@@ -27,6 +27,8 @@ if ($factura->getUsuarioId() != $usuario->id) {
     return volver();
 }
 
+$cupon = $factura->getCupon();
+
 $filas_tabla = '';
 $total = 0;
 
@@ -35,10 +37,9 @@ foreach ($factura->getLineas($pdo) as $linea) {
     $codigo = $articulo->getCodigo();
     $descripcion = $articulo->getDescripcion();
     $cantidad = $linea->getCantidad();
-    if($articulo->getCupon() != null) {
+    if($cupon) {
         $precio_antiguo = $articulo->getPrecio();
-        $precio = $articulo->aplicarCupon();
-        $cupon = $articulo->getCupon();
+        $precio = $articulo->aplicarCupon($cupon);
     } else {
         $precio = $articulo->getPrecio();
     }
