@@ -35,20 +35,38 @@
             }        
         }
         // Crear factura
+
         $usuario = \App\Tablas\Usuario::logueado();
         $usuario_id = $usuario->id;
-        $pdo->beginTransaction();
-        $cupon = obtener_get('cupon');
-        $sent = $pdo->prepare('INSERT INTO facturas (usuario_id, cupon_utilizado)
-                               VALUES (:usuario_id, :cupon_utilizado)
-                               RETURNING id');
-        $sent->execute([':usuario_id' => $usuario_id, ':cupon_utilizado' => $cupon]);
-        $factura_id = $sent->fetchColumn();
-        $lineas = $carrito->getLineas();
-        $values = [];
-        $execute = [':f' => $factura_id];
-        $i = 1;
 
+        $cupon = obtener_get("cupon");
+        $vacio = true;
+    
+        if(isset($cupon) && ($vacio)) {
+                $pdo->beginTransaction();
+            $sent = $pdo->prepare('INSERT INTO facturas (usuario_id, cupon_utilizado)
+                                VALUES (:usuario_id, :cupon_utilizado)
+                                RETURNING id');
+            $sent->execute([':usuario_id' => $usuario_id,
+                            ':cupon_utilizado' => $cupon]);
+            $factura_id = $sent->fetchColumn();
+            $lineas = $carrito->getLineas();
+            $values = [];
+            $execute = [':f' => $factura_id];
+            $i = 1;
+        } else {
+            $pdo->beginTransaction();
+            $sent = $pdo->prepare('INSERT INTO facturas (usuario_id)
+                                   VALUES (:usuario_id)
+                                   RETURNING id');
+            $sent->execute([':usuario_id' => $usuario_id]);
+            $factura_id = $sent->fetchColumn();
+            $lineas = $carrito->getLineas();
+            $values = [];
+            $execute = [':f' => $factura_id];
+            $i = 1;
+        }
+    
         foreach ($lineas as $id => $linea) {
             $values[] = "(:a$i, :f, :c$i)";
             $execute[":a$i"] = $id;
@@ -74,26 +92,43 @@
     }
 
     $cupon = obtener_get('cupon');
-
+    $errores = ['cupon' => [], 'fecha' => []];
+    $vacio = true;
 
 
     if(isset($cupon)) {
 
         $pdo = conectar();
 
-        $buscar_cupon = $pdo->prepare("SELECT * FROM cupones WHERE cupon = :cupon");
-        $buscar_cupon->execute([":cupon" => $cupon]);
-        $buscar_cupon = $buscar_cupon->fetchColumn();
+        $hoy = date('Y-m-d');
+        $hoy_unix = strtotime($hoy);
 
-        if($buscar_cupon == null) {
-            $_SESSION['error'] = 'El cupón que quieres introducir no existe';
-            unset($cupon);
+       
+        $buscar_cupon = $pdo->prepare("SELECT * from cupones where cupon = :cupon");
+        $buscar_cupon->execute([':cupon' => $cupon]);
 
-        } else {
-            $_SESSION['exito'] = "Se ha aplicado el cupón correspondiente: $cupon";
+        if($buscar_cupon->fetchColumn() == 0) {
+            $errores['cupon'][] = "El cupon no existe";
         }
 
-    } 
+        $buscar_fecha = $pdo->prepare("SELECT fecha from cupones where cupon = :cupon");
+        $buscar_fecha->execute([':cupon' => $cupon]);
+
+        $fecha = $buscar_fecha->fetchColumn();
+        $fecha_unix = date($fecha);
+
+        if($fecha_unix < $hoy) {
+            $errores['fecha'][] = "El cupon ha caducado";
+        }
+
+            }
+
+            foreach ($errores as $err) {
+                if (!empty($err)) {
+                    $vacio = false;
+                    break;
+                }
+            }
 
     ?>
 
@@ -109,6 +144,17 @@
                     <br>
                     <input type="text" name="cupon" id="cupon">
                     <button type="submit"> Aplicar cupón </button>
+                    <?php if($errores['cupon']): ?>
+                    <?php foreach ($errores['cupon'] as $err): ?>
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-500"><span class="font-bold">¡Error!</span> <?= $err ?></p>
+                        <?php endforeach ?>
+                    <?php else: ?>
+                        <?php if($errores['fecha']): ?>
+                        <?php foreach ($errores['fecha'] as $err): ?>
+                                <p class="mt-2 text-sm text-red-600 dark:text-red-500"><span class="font-bold">¡Error!</span> <?= $err ?></p>
+                            <?php endforeach ?>
+                    <?php endif ?>
+                <?php endif ?>
                 </label>
             </fieldset>
         </form>
@@ -118,7 +164,7 @@
                     <th scope="col" class="py-3 px-6">Código</th>
                     <th scope="col" class="py-3 px-6">Descripción</th>
                     <th scope="col" class="py-3 px-6">Cantidad</th>
-                    <?php if(isset($cupon)): ?>
+                    <?php if(isset($cupon) && ($vacio)): ?>
                         <th scope="col" class="py-3 px-6">Antiguo precio</th>
                         <th scope="col" class="py-3 px-6">Nuevo precio</th>
                     <?php else: ?>
@@ -134,7 +180,7 @@
                         $precio_antiguo = $articulo->getPrecio();
                         $codigo = $articulo->getCodigo();
                         $cantidad = $linea->getCantidad();
-                        if(isset($cupon)) {
+                        if(isset($cupon) && ($vacio)) {
                             $precio_antiguo = $articulo->getPrecio();
                             $precio = $articulo->aplicarCupon($cupon);
                         } else {
@@ -142,15 +188,15 @@
                         }
                         $importe = $cantidad * $precio;
                         $total += $importe;
-                        if(isset($cupon)) {
+                        if(isset($cupon) && ($vacio)) {
                            $cupon;
                         }
                         ?>
-                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"> 
                             <td class="py-4 px-6"><?= $articulo->getCodigo() ?></td>
                             <td class="py-4 px-6"><?= $articulo->getDescripcion() ?></td>
                             <td class="py-4 px-6 text-center"><?= $cantidad ?></td>
-                            <?php if(isset($cupon)): ?>
+                            <?php if(isset($cupon) && ($vacio)): ?>
                                 <td class="py-4 px-6 text-center">
                                     <?= dinero($precio_antiguo) ?>
                                 </td>
@@ -170,7 +216,7 @@
                     <?php endforeach ?>
                 </tbody>
                 <tfoot>
-                <?php if(isset($cupon)): ?>
+                <?php if(isset($cupon) && ($vacio)): ?>
                                 <td class="py-4 px-6">Cupon utilizado: <?= $cupon ?></td>       
                             <?php endif ?>
                     <td colspan="3"></td>

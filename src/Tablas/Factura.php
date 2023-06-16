@@ -67,6 +67,30 @@ class Factura extends Modelo
             $this->total = $sent->fetchColumn();
         }
 
+        if(isset($this->cupon_utilizado)) 
+
+        {
+            $sent = $pdo->prepare('SELECT SUM(cantidad * precio) AS total
+                                     FROM articulos_facturas l
+                                     JOIN articulos a
+                                       ON l.articulo_id = a.id
+                                    WHERE factura_id = :id');
+            $sent->execute([':id' => $this->id]);
+            $total_antiguo =  $this->total = $sent->fetchColumn();
+
+            switch ($this->cupon_utilizado) {
+                case '50 %':
+                    $descuento = $total_antiguo * 0.5;
+                    $total_nuevo = $total_antiguo - $descuento; 
+                    break;
+                default:
+                    $total_nuevo = $total_antiguo;
+                    break;
+            }
+
+            return $total_nuevo;
+        }
+
         return $this->total;
     }
 

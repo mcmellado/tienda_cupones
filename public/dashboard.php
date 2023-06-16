@@ -1,4 +1,4 @@
-<?php
+ <?php
 
 use App\Tablas\Factura;
 use App\Tablas\Usuario;

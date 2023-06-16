@@ -1,18 +1,9 @@
--- Elimina las restricciones de clave foránea en la tabla "facturas" antes de eliminarla
-ALTER TABLE facturas DROP CONSTRAINT IF EXISTS facturas_usuario_id_fkey;
-
--- Elimina las restricciones de clave foránea en la tabla "articulos_facturas" antes de eliminarla
-ALTER TABLE articulos_facturas DROP CONSTRAINT IF EXISTS articulos_facturas_articulo_id_fkey;
-ALTER TABLE articulos_facturas DROP CONSTRAINT IF EXISTS articulos_facturas_factura_id_fkey;
-
--- Elimina las tablas si existen
 DROP TABLE IF EXISTS articulos_facturas;
 DROP TABLE IF EXISTS facturas;
 DROP TABLE IF EXISTS articulos;
 DROP TABLE IF EXISTS usuarios;
 DROP TABLE IF EXISTS cupones;
 
--- Crea las tablas
 CREATE TABLE cupones (
     id     bigserial PRIMARY KEY,
     fecha  date         NOT NULL,
@@ -51,8 +42,8 @@ CREATE TABLE articulos_facturas (
 -- Carga inicial de datos de prueba
 
 INSERT INTO cupones (cupon, fecha)
-    VALUES ('50 %', '2023-06-14'),
-           ('60 %', '2023-06-16');
+    VALUES ('50 %', '2023-06-18'),
+           ('60 %', '2023-06-13');
 
 INSERT INTO articulos (codigo, descripcion, precio, stock)
     VALUES ('18273892389', 'Yogur piña', 200.50, 4),
