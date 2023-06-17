@@ -7,7 +7,8 @@ DROP TABLE IF EXISTS cupones;
 CREATE TABLE cupones (
     id     bigserial PRIMARY KEY,
     fecha  date         NOT NULL,
-    cupon  varchar(255) NOT NULL
+    cupon  varchar(255) NOT NULL,
+    descuento numeric(7,2) NOT NULL
 );
 
 CREATE TABLE articulos (
@@ -41,9 +42,9 @@ CREATE TABLE articulos_facturas (
 
 -- Carga inicial de datos de prueba
 
-INSERT INTO cupones (cupon, fecha)
-    VALUES ('50 %', '2023-06-18'),
-           ('60 %', '2023-06-13');
+INSERT INTO cupones (cupon, fecha, descuento)
+    VALUES ('50 %', '2023-06-18', 50),
+           ('60 %', '2023-06-13', 60);
 
 INSERT INTO articulos (codigo, descripcion, precio, stock)
     VALUES ('18273892389', 'Yogur piña', 200.50, 4),

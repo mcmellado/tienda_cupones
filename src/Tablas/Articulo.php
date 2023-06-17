@@ -76,16 +76,16 @@ class Articulo extends Modelo
     {
         $precio_articulo = $this->precio;
         $nuevo_precio = $precio_articulo;
-    
-        switch ($cupon) {
-            case '50 %':
-                $descuento = $precio_articulo * 0.5;
-                $nuevo_precio = $precio_articulo - $descuento; 
-                break;
-            default:
-                $nuevo_precio = $precio_articulo;
-                break;
-        }
+
+        $pdo = conectar();
+
+        $descuento = $pdo->prepare("SELECT descuento from cupones where cupon = :cupon");
+        $descuento->execute([':cupon' => $cupon]);
+        $descuento = $descuento->fetchColumn();
+            
+        $descuento = $descuento / 100;
+        $descuento_quitar = $precio_articulo * $descuento;
+        $nuevo_precio = $precio_articulo - $descuento_quitar;
     
         return $nuevo_precio;
     }

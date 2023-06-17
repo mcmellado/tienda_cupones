@@ -78,15 +78,15 @@ class Factura extends Modelo
             $sent->execute([':id' => $this->id]);
             $total_antiguo =  $this->total = $sent->fetchColumn();
 
-            switch ($this->cupon_utilizado) {
-                case '50 %':
-                    $descuento = $total_antiguo * 0.5;
-                    $total_nuevo = $total_antiguo - $descuento; 
-                    break;
-                default:
-                    $total_nuevo = $total_antiguo;
-                    break;
-            }
+            $cupon = $this->cupon_utilizado;
+            $pdo = conectar();
+            $descuento = $pdo->prepare("SELECT descuento from cupones where cupon = :cupon");
+            $descuento->execute([':cupon' => $cupon]);
+            $descuento = $descuento->fetchColumn();
+            
+            $descuento = $descuento / 100;
+            $descuento_quitar = $total_antiguo * $descuento;
+            $total_nuevo = $total_antiguo - $descuento_quitar;
 
             return $total_nuevo;
         }
